@@ -121,7 +121,7 @@ function normalizeAudioBuffer(buffer, targetRms = 0.05) {
 
 /* ========== LOAD AUDIO & CORRECTIONS ========== */
 async function loadLanguageAudio(lang) {
-  const base = `/audio/${lang}`;
+  const base = `audio/${lang}`;
   const digitUrls = [];
   for (let i=0;i<=9;i++) digitUrls.push(`${base}/${i}.wav`);
   const noiseUrl = `${base}/noise.wav`;
@@ -792,3 +792,4 @@ function updateBoxesFromString(s) {
 
 
 /* ========== END ========== */
+
