@@ -4,10 +4,10 @@ const API_BASE = 'https://din-app.onrender.com';
 
 // ---- tiny fetch helper ----
 async function api(path, opts = {}) {
-  const res = await fetch(
-    path,
-    Object.assign({ headers: { "Content-Type": "application/json" } }, opts)
-  );
+  const res = await fetch(API_BASE + path, Object.assign({
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include'  // ★ 关键：跨站要带 Cookie
+  }, opts));
   if (!res.ok) {
     let msg = `${res.status} ${res.statusText}`;
     try { msg = await res.text(); } catch {}
@@ -263,4 +263,5 @@ function showDetail(rec) {
   wrap.appendChild(card);
   document.body.appendChild(wrap);
 }
+
 
