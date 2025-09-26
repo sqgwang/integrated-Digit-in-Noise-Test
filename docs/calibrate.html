@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>DIN Test Calibration</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">integrated Digit-in-Noise Test</div>
+    <div class="lang-switch">
+      <select id="uiLang">
+        <option value="english">English</option>
+        <option value="mandarin">普通话</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1 id="calibTitle" class="large-title" data-i18n="calibTitle">Calibration</h1>    
+    <p data-i18n="calibText">Please connect wired headphones. Use the slider to adjust the background noise until the noise is comfortably audible.</p>
+
+    <div class="center">
+      <button id="playNoise" class="secondary" data-i18n="playNoise">Play noise</button>
+      <button id="stopNoise" class="secondary" data-i18n="stop">Stop</button>
+    </div>
+    <div class="spacer-md"></div>
+
+    <div class="form-row">
+      <label for="noiseGain" data-i18n="noiseGainLabel">Noise level</label>
+      <input type="range" id="noiseGain" min="0" max="2" step="0.01" value="1" />
+      <div id="gainValue">1.00</div>
+    </div>
+
+    <div class="center">
+      <button id="confirmCalib" class="primary" data-i18n="calibConfirm">Confirm and Start Test</button>
+    </div>
+    <div id="calibMsg" class="note"></div>
+  </main>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // calibration wiring
+    document.addEventListener('DOMContentLoaded', async () => {
+      const sel = document.getElementById('uiLang');
+      sel.value = localStorage.getItem('uiLang') || 'english';
+      sel.addEventListener('change', () => { localStorage.setItem('uiLang', sel.value); setUILanguage(sel.value); });
+      setUILanguage(sel.value);
+
+      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+      if (!userInfo || !userInfo.stimLang) {
+        alert('User info missing. Returning to start.');
+        location.href = 'index.html';
+        return;
+      }
+
+      // load language audio for calibration (just noise and digits)
+      try {
+        await loadLanguageAudio(userInfo.stimLang); // defined in app.js
+      } catch (e) {
+        document.getElementById('calibMsg').textContent = 'Failed to load audio. Check console.';
+        console.error(e);
+      }
+
+      const playBtn = document.getElementById('playNoise');
+      const stopBtn = document.getElementById('stopNoise');
+      const gainSlider = document.getElementById('noiseGain');
+      const gainValue = document.getElementById('gainValue');
+
+      gainSlider.value = localStorage.getItem('fixedNoiseGain') || 1.0;
+      gainValue.textContent = parseFloat(gainSlider.value).toFixed(2);
+
+      playBtn.addEventListener('click', async () => {
+        await startNoiseLoop(); // from app.js
+      });
+      stopBtn.addEventListener('click', () => stopNoiseLoop());
+      gainSlider.addEventListener('input', (e) => {
+        const v = parseFloat(e.target.value);
+        document.getElementById('gainValue').textContent = v.toFixed(2);
+        setFixedNoiseGain(v); // app.js
+      });
+
+      document.getElementById('confirmCalib').addEventListener('click', () => {
+        const v = parseFloat(gainSlider.value);
+        localStorage.setItem('fixedNoiseGain', v);
+        // go to test page
+        location.href = 'test.html';
+      });
+    });
+  </script>
+</body>
+</html>

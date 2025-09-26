@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Admin</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">DIN Admin</div>
+</header>
+
+<main class="container stack" id="appRoot" style="max-width: 960px;">
+  <!-- 登录 -->
+  <section id="loginPane">
+    <h1 class="large-title">Sign in</h1>
+    <div class="form-row">
+      <label>Username</label>
+      <input id="loginUser" type="text" autocomplete="username">
+    </div>
+    <div class="form-row">
+      <label>Password</label>
+      <input id="loginPass" type="password" autocomplete="current-password">
+    </div>
+    <button id="btnLogin" class="primary">Login</button>
+    <div id="loginMsg" class="note"></div>
+  </section>
+
+  <!-- 仪表盘 -->
+  <section id="dashPane" style="display:none;">
+    <div class="stack">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <h1 class="large-title" style="margin:0;">Dashboard</h1>
+        <div id="meBadge" class="note"></div>
+        <div style="margin-left:auto;">
+          <button id="btnLogout" class="secondary">Logout</button>
+        </div>
+      </div>
+
+      <div class="stack" style="border:1px solid var(--hairline); border-radius:16px; padding:12px; background:var(--surface);">
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input id="q" type="text" placeholder="Search (PID, language, condition...)" style="max-width: 360px;">
+          <button id="btnReload" class="secondary">Reload</button>
+          <div id="count" class="note"></div>
+        </div>
+        <div id="list"></div>
+      </div>
+
+      <!-- 仅管理员可见：用户管理 -->
+      <div id="userAdmin" class="stack" style="display:none; border:1px solid var(--hairline); border-radius:16px; padding:12px; background:var(--surface);">
+        <h2>Users</h2>
+        <div id="userList" class="note">—</div>
+        <div style="display:flex; gap:10px; align-items:flex-end;">
+          <div style="flex:1;">
+            <label>New username</label>
+            <input id="newUser" type="text">
+          </div>
+          <div style="flex:1;">
+            <label>Password</label>
+            <input id="newPass" type="text">
+          </div>
+          <div>
+            <label>Role</label>
+            <select id="newRole"><option value="viewer">viewer</option><option value="admin">admin</option></select>
+          </div>
+          <button id="btnAddUser" class="primary">Add</button>
+        </div>
+        <div id="userMsg" class="note"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="admin.js"></script>
+</body>
+</html>

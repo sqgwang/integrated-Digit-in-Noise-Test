@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <title data-i18n="infoTitle">Participant Information</title>
+
+    <!-- 引入全局样式：让它和其他页面风格一致 -->
+    <link rel="stylesheet" href="css/styles.css?v=ios26">
+  </head>
+
+  <body>
+    <!-- 顶部栏，和其他页面一致 -->
+    <header class="topbar">
+      <div class="brand">integrated Digit-in-Noise Test</div>
+      <div class="lang-switch" style="margin-left:auto;">
+        <select id="uiLang">
+          <option value="english">English</option>
+          <option value="mandarin">普通话</option>
+        </select>
+      </div>
+    </header>
+    
+    <main class="container">
+      <h1 class="large-title" data-i18n="infoHeading">Participant Information</h1>
+      <form id="infoForm">
+        <div class="form-row">
+          <label for="pid">
+            <span data-i18n="participantId">Participant ID</span>
+          </label>
+          <input id="pid" name="pid" type="text" placeholder="optional">
+        </div>
+
+        <div class="form-row">
+          <label>
+            <span data-i18n="gender">Gender</span>
+            <span class="required" aria-hidden="true">*</span>
+          </label>
+          <select id="gender" name="gender" required>
+            <option value="">--</option>
+            <option value="male" data-i18n="male">Male</option>
+            <option value="female" data-i18n="female">Female</option>
+            <option value="other" data-i18n="other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="age">
+            <span data-i18n="age">Age (0-100)</span>
+            <span class="required" aria-hidden="true">*</span>
+          </label>
+          <input id="age" name="age" type="number" min="0" max="100" required>
+        </div>
+
+        <div class="form-row">
+          <label for="edu">
+            <span data-i18n="education">Education years (0-30)</span>
+            <span class="required" aria-hidden="true">*</span>
+          </label>
+          <input id="edu" name="education" type="number" min="0" max="30" required>
+        </div>
+
+        <div class="form-row">
+          <label for="stimLang">
+            <span data-i18n="stimLang">Stimulus language (audio)</span>
+          </label>
+          <select id="stimLang" name="stimLang" required>
+            <option value="mandarin" data-i18n="mandarin">Mandarin</option>
+            <option value="cantonese" data-i18n="cantonese">Cantonese</option>
+            <option value="british_english" data-i18n="british_english">British_English</option>
+            <option value="ningboese" data-i18n="ningboese">Ningboese</option>
+            <option value="hangzhouese" data-i18n="hangzhouese">Hangzhouese</option>
+            <option value="min" data-i18n="min">Min</option>
+            <option value="fuzhouese" data-i18n="fuzhouese">Fuzhouese</option>
+          </select>
+        </div>
+
+        <fieldset class="form-row">
+          <legend data-i18n="chooseConditions">Select test conditions (check any)</legend>
+          <label><input type="checkbox" name="testCond" value="2f"> 2-digit forward</label><br>
+          <label><input type="checkbox" name="testCond" value="2b"> 2-digit backward</label><br>
+          <label><input type="checkbox" name="testCond" value="3f" checked> 3-digit forward</label><br>
+          <label><input type="checkbox" name="testCond" value="3b" checked> 3-digit backward</label><br>
+          <label><input type="checkbox" name="testCond" value="5f"> 5-digit forward</label><br>
+          <p class="note" data-i18n="condHelp">You may select one or more conditions.</p>
+        </fieldset>
+
+        <div class="form-row">
+          <button type="submit" id="proceedBtn" class="primary" data-i18n="proceed">
+            Proceed to calibration
+          </button>
+        </div>
+      </form>
+    </main>
+
+    <!-- 脚本：保持你的实际路径（你说在 js/ 目录） -->
+    <script src="js/i18n.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+      // 语言初始化
+      (function(){
+        const sel = document.getElementById('uiLang');
+        const saved = localStorage.getItem('uiLang') || 'english';
+        if (sel) {
+          sel.value = saved;
+          sel.addEventListener('change', (e) => {
+            const v = e.target.value;
+            localStorage.setItem('uiLang', v);
+            if (typeof setUILanguage === 'function') setUILanguage(v);
+          });
+        }
+        if (typeof setUILanguage === 'function') setUILanguage(saved);
+      })();
+
+      // 每次进入都重置为默认
+      (function(){
+        const form = document.getElementById('infoForm');
+        if (form && typeof form.reset === 'function') form.reset();
+        const byId = id => document.getElementById(id);
+        const safeSet = (id, v) => { const el = byId(id); if (el) el.value = v; };
+        safeSet('pid',''); safeSet('age',''); safeSet('edu',''); safeSet('gender','');
+        document.querySelectorAll('input[name="testCond"]').forEach(cb => cb.checked = false);
+        const def3f = document.querySelector('input[name="testCond"][value="3f"]');
+        const def3b = document.querySelector('input[name="testCond"][value="3b"]');
+        if (def3f) def3f.checked = true;
+        if (def3b) def3b.checked = true;
+      })();
+
+      // 提交保存并跳转
+      document.getElementById('infoForm').addEventListener('submit', function(ev){
+        ev.preventDefault();
+        const pid = document.getElementById('pid').value.trim();
+        const gender = document.getElementById('gender').value;
+        const age = parseInt(document.getElementById('age').value, 10);
+        const edu = parseInt(document.getElementById('edu').value, 10);
+        const stimLang = document.getElementById('stimLang').value;
+        if (!gender || isNaN(age) || isNaN(edu) || !stimLang) {
+          alert('Please complete required fields (*).');
+          return;
+        }
+        const selected = Array.from(document.querySelectorAll('input[name="testCond"]:checked')).map(i => i.value);
+        const testConditions = selected.length ? selected : ['3f'];
+        const userInfo = { pid: pid || '', gender, age, education: edu, stimLang, testConditions };
+        localStorage.setItem('userInfo', JSON.stringify(userInfo));
+        localStorage.removeItem('din_session');
+        location.href = 'calibrate.html';
+      });
+    </script>
+
+    <!-- 不再需要页面内联样式，统一交给 styles.css -->
+  </body>
+</html>

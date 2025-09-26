@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>iDIN Intro</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">integrated Digit-in-Noise Test</div>
+    <div class="lang-switch">      
+      <select id="uiLang">
+        <option value="english">English</option>
+        <option value="mandarin">普通话</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1 data-i18n="introTitle">Welcome to the integrated digit-in-noise test!</h1>
+    <p data-i18n="introText">
+      This test measures your ability to hear numbers in background noise. You will hear sequences of digits and then repeat them. The test includes different conditions, such as varying the length of digit sequences and using different recall methods (e.g., forward recall or backward recall).
+    </p>
+
+    <div class="center">
+      <button id="startBtn" class="primary" data-i18n="start">Start test</button>      
+    </div>
+
+    <div class="spacer-md"></div>
+
+    <footer class="note" data-i18n="introNote">
+      Please use wired headphones and be in a quiet room.
+    </footer>
+  </main>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // wire up UI language and start button
+    document.addEventListener('DOMContentLoaded', () => {
+      const sel = document.getElementById('uiLang');
+      sel.value = localStorage.getItem('uiLang') || 'english';
+      sel.addEventListener('change', () => {
+        localStorage.setItem('uiLang', sel.value);
+        setUILanguage(sel.value);
+      });
+      setUILanguage(sel.value);
+      document.getElementById('startBtn').addEventListener('click', () => {
+        // go to info page
+        location.href = 'info.html';
+      });
+    });
+  </script>
+</body>
+</html>
