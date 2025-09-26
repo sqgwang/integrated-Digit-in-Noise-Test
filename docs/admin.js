@@ -1,5 +1,7 @@
 // public/admin.js
 
+const API_BASE = 'https://din-app.onrender.com';
+
 // ---- tiny fetch helper ----
 async function api(path, opts = {}) {
   const res = await fetch(
@@ -261,3 +263,4 @@ function showDetail(rec) {
   wrap.appendChild(card);
   document.body.appendChild(wrap);
 }
+
