@@ -1,6 +1,6 @@
 // public/admin.js
 
-const API_BASE = 'https://din-app.onrender.com';
+const API_BASE = 'https:/https://din-backend-h4a3.onrender.com';
 
 // ---- tiny fetch helper ----
 async function api(path, opts = {}) {
@@ -263,5 +263,6 @@ function showDetail(rec) {
   wrap.appendChild(card);
   document.body.appendChild(wrap);
 }
+
 
 
