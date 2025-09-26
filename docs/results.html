@@ -207,11 +207,14 @@
         };
 
         try {
-          const res = await fetch('/api/results', {
-            method: 'POST',
-            headers: { 'Content-Type':'application/json' },
-            body: JSON.stringify(payload)
-          });
+          const res = await 
+            const url = (window.API_BASE || '') + '/api/results';
+            if (url) {
+              const res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type':'application/json' },
+              body: JSON.stringify(payload)
+          });           
           if (!res.ok) throw new Error(await res.text());
           const data = await res.json();
           console.log('Results uploaded:', data);
@@ -263,4 +266,5 @@
   </script>
 </body>
 </html>
+
 
