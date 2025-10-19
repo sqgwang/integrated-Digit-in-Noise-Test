@@ -1,5 +1,5 @@
 // public/js/app.js
-// 整合版 app.js
+// 整合版 app.js（已增强：播放时灰化/禁用输入 + 支持实体键盘输入）
 // 支持多条件（2f,2b,3f,3b,5f），practice/formal 分离，离线混音播放，结果汇总（SRT/RT 与差值）
 // 重要：不要在此文件覆盖 setUILanguage（i18n.js 提供翻译功能）
 
@@ -185,6 +185,36 @@ function setFixedNoiseGain(v) {
   if (noiseLoopGain) noiseLoopGain.gain.value = fixedNoiseGain;
 }
 
+/* ========== UI INPUT LOCK (播放时锁定输入) ========== */
+window.dinUI = window.dinUI || {};
+window.dinUI.inputLocked = false;
+
+function setInputLock(locked) {
+  window.dinUI.inputLocked = !!locked;
+  // 虚拟键盘禁用/灰化
+  disableKeypad(locked);
+  // 播放按钮也禁用，避免重复点击
+  const playBtn = document.getElementById('playTrial');
+  if (playBtn) {
+    playBtn.disabled = locked;
+    if (locked) playBtn.classList.add('disabled'); else playBtn.classList.remove('disabled');
+  }
+}
+
+function disableKeypad(disabled) {
+  // 记录锁态
+  window.dinUI.inputLocked = !!disabled;
+
+  // 禁用按钮
+  document.querySelectorAll('.keypad-button, #clear, #ok').forEach(btn => { if (btn) btn.disabled = !!disabled; });
+
+  // 额外加容器类（如果你的 CSS 对 .keypad.disabled 有灰化样式，将会生效）
+  const keypad = document.getElementById('keypad');
+  if (keypad) {
+    if (disabled) keypad.classList.add('disabled'); else keypad.classList.remove('disabled');
+  }
+}
+
 /* ========== RENDER & PLAY ========== */
 async function renderMixedBufferAndPlay(digits, targetSNR, lang, options = {}) {
   const prePad = options.prePad ?? PRE_PAD;
@@ -273,15 +303,20 @@ async function renderMixedBufferAndPlay(digits, targetSNR, lang, options = {}) {
   }
 
   const mixedData = new Float32Array(totalSamples);
+
+  // === 写入信号：只用 desiredSignalScale，不再乘 fixedNoiseGain（避免把噪声增益施加到信号上导致失真） ===
   let cur = preSamples;
   for (let idx=0; idx<digitMonos.length; idx++) {
-  const mono = digitMonos[idx];
-  for (let j=0;j<mono.length;j++) mixedData[cur + j] += mono[j] * desiredSignalScale * fixedNoiseGain; // ✅ 只缩放信号以命中目标 SNR
-  cur += mono.length;
-  if (idx < digitMonos.length - 1) cur += gapSamples;
-}
-for (let i=0;i<totalSamples;i++) mixedData[i] += noiseFull[i] * fixedNoiseGain; // ✅ fixedNoiseGain 仅用于噪声
+    const mono = digitMonos[idx];
+    for (let j=0;j<mono.length;j++) mixedData[cur + j] += mono[j] * desiredSignalScale * fixedNoiseGain;
+    cur += mono.length;
+    if (idx < digitMonos.length - 1) cur += gapSamples;
+  }
 
+  // === 写入噪声：应用 fixedNoiseGain（校准页设置的噪声增益） ===
+  for (let i=0;i<totalSamples;i++) mixedData[i] += noiseFull[i] * fixedNoiseGain;
+
+  // 防削顶
   let maxAbs = 0;
   for (let i=0;i<totalSamples;i++) if (Math.abs(mixedData[i]) > maxAbs) maxAbs = Math.abs(mixedData[i]);
   if (maxAbs > 0.99) {
@@ -414,7 +449,8 @@ function showConditionIntro() {
   const def = COND_DEFS[currCond] || { label: currCond, nDigits: 3 };
   setInputBoxes(def.nDigits);
   updateBoxesFromString(''); // 清空方框显示
-  disableKeypad(true);       // 只有播放结束才允许输入
+  setInputLock(false);       // Intro 阶段允许点击 Play，但不允许提前输入（由初始键盘状态决定）
+  disableKeypad(true);       // 初始：不让输入，等点击 Play 开始
 
   // 3) 进度显示（顶端进度条文本）
   updateProgressUI();
@@ -443,9 +479,6 @@ function showConditionIntro() {
 }
 
 /* ========== KEYPAD HELPERS ========== */
-function disableKeypad(disabled) {
-  document.querySelectorAll('.keypad-button, #clear, #ok').forEach(btn => { if (btn) btn.disabled = !!disabled; });
-}
 function appendInput(v) {
   const k = getCurrentNDigits();
   const cur = getCurrentInput();
@@ -458,7 +491,6 @@ function clearInput() {
   if (!cur) { updateBoxesFromString(''); return; }
   updateBoxesFromString(cur.slice(0, -1)); // 单字符退格
 }
-
 
 /* ========== TRIAL FLOW ========== */
 async function startTrialPlay() {
@@ -549,7 +581,8 @@ async function startTrialPlay() {
   session.currentPresentedSNR = targetSNR;
   localStorage.setItem('din_session', JSON.stringify(session));
 
-  disableKeypad(true);
+  // === 播放前：锁定输入（虚拟键盘禁用 + 实体键盘屏蔽），禁用 Play 避免重复点击
+  setInputLock(true);
   const status = document.getElementById('statusMsg');
   if (status) status.textContent = 'Playing...';
 
@@ -557,16 +590,20 @@ async function startTrialPlay() {
     const r = await renderMixedBufferAndPlay(digits, targetSNR, session.userInfo.stimLang, { noiseEnabled });
     session._lastEffectiveSNR = r.effectiveSNR;
     if (status) status.textContent = 'Playback finished. Please type digits and press OK.';
-    disableKeypad(false);
+    // === 播放结束：解除锁定，允许输入与提交
+    setInputLock(false);
   } catch (e) {
     console.error('Playback error', e);
     if (status) status.textContent = 'Playback error. Click Play to retry.';
-    disableKeypad(false);
+    setInputLock(false);
   }
 }
 
 /* ========== SUBMIT / ADAPTIVE ========== */
 async function submitInput() {
+  // 若仍在播放锁定中，直接忽略（防止实体键盘 ENTER 误触）
+  if (window.dinUI?.inputLocked) return;
+
   const inputEl = document.getElementById('input');
   const input = getCurrentInput();
   if (input.length === 0) { alert('Please enter the digits before pressing OK.'); return; }
@@ -615,8 +652,9 @@ async function submitInput() {
 
     if (pSpec && pSpec.mustCorrect && !correct) {
       alert(`Incorrect. The correct answer is ${expectedResponse}. The trial will be replayed until answered correctly.`);
-      disableKeypad(true);
-      try { await startTrialPlay(); } catch(e){ disableKeypad(false); const status=document.getElementById('statusMsg'); if (status) status.textContent='Playback failed. Click Play to retry.'; }
+      // 立即开始重播：先锁定
+      setInputLock(true);
+      try { await startTrialPlay(); } catch(e){ setInputLock(false); const status=document.getElementById('statusMsg'); if (status) status.textContent='Playback failed. Click Play to retry.'; }
       return;
     }
 
@@ -632,10 +670,12 @@ async function submitInput() {
       updateProgressUI();
       localStorage.setItem('din_session', JSON.stringify(session));
       alert('Practice completed for this condition. Formal trials will begin.');
-      try { await startTrialPlay(); } catch(e){ console.error('Start formal failed', e); const status=document.getElementById('statusMsg'); if (status) status.textContent='Playback failed. Click Play to retry.'; }
+      setInputLock(true);
+      try { await startTrialPlay(); } catch(e){ console.error('Start formal failed', e); const status=document.getElementById('statusMsg'); if (status) status.textContent='Playback failed. Click Play to retry.'; setInputLock(false); }
       return;
     } else {
-      try { await startTrialPlay(); } catch(e){ console.error('Start next practice failed', e); disableKeypad(false); const status=document.getElementById('statusMsg'); if (status) status.textContent='Playback failed. Click Play to retry.'; }
+      setInputLock(true);
+      try { await startTrialPlay(); } catch(e){ console.error('Start next practice failed', e); const status=document.getElementById('statusMsg'); if (status) status.textContent='Playback failed. Click Play to retry.'; setInputLock(false); }
       return;
     }
   }
@@ -663,11 +703,13 @@ async function submitInput() {
       session.formalIdx[nextCond] = session.formalIdx[nextCond] || 0;
       localStorage.setItem('din_session', JSON.stringify(session));
       alert(`Proceeding to next condition: ${nextCond}. Practice will start now.`);
-      try { await startTrialPlay(); } catch(e){ console.error('Start next condition failed', e); const status=document.getElementById('statusMsg'); if (status) status.textContent='Playback failed. Click Play to retry.'; disableKeypad(false); }
+      setInputLock(true);
+      try { await startTrialPlay(); } catch(e){ console.error('Start next condition failed', e); const status=document.getElementById('statusMsg'); if (status) status.textContent='Playback failed. Click Play to retry.'; setInputLock(false); }
       return;
     }
   } else {
-    try { await startTrialPlay(); } catch(e){ console.error('Start next formal failed', e); const status=document.getElementById('statusMsg'); if (status) status.textContent='Playback failed. Click Play to retry.'; disableKeypad(false); }
+    setInputLock(true);
+    try { await startTrialPlay(); } catch(e){ console.error('Start next formal failed', e); const status=document.getElementById('statusMsg'); if (status) status.textContent='Playback failed. Click Play to retry.'; setInputLock(false); }
     return;
   }
 }
@@ -757,6 +799,8 @@ window.proceedToNextCondition = proceedToNextCondition;
 window.finalizeAndGetResults = finalizeAndGetResults;
 window.downloadJSON = downloadJSON;
 window.downloadCSV = downloadCSV;
+// 暴露条件定义给 results.html 使用（可选）
+window.COND_DEFS = COND_DEFS;
 
 // NOTE: do NOT overwrite setUILanguage here — keep the implementation from i18n.js
 
@@ -790,6 +834,47 @@ function updateBoxesFromString(s) {
   });
 }
 
+/* ========== 实体键盘输入支持（test 页面自动启用） ========== */
+document.addEventListener('DOMContentLoaded', () => {
+  // 只在有 keypad 的页面启用
+  if (!document.getElementById('keypad')) return;
+
+  document.addEventListener('keydown', (e) => {
+    // 播放锁定中：屏蔽输入
+    if (window.dinUI?.inputLocked) {
+      if (/^\d$/.test(e.key) || e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Enter') {
+        e.preventDefault();
+      }
+      return;
+    }
+
+    // 避免在输入框/文本域/可编辑元素上触发
+    const el = e.target;
+    const tag = (el.tagName || '').toLowerCase();
+    const isTyping = (tag === 'input' || tag === 'textarea' || el.isContentEditable);
+    if (isTyping) return;
+
+    // 数字键 0-9
+    if (/^\d$/.test(e.key)) {
+      e.preventDefault();
+      appendInput(e.key);
+      return;
+    }
+
+    // 退格/删除
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      e.preventDefault();
+      clearInput();
+      return;
+    }
+
+    // 回车=提交
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      submitInput();
+      return;
+    }
+  }, { capture: true });
+});
 
 /* ========== END ========== */
-

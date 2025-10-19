@@ -1,7 +1,7 @@
 // docs/admin.js
 
-// 后端基地址（你的 Render 域名）
-const API_BASE = 'https://din-backend-h4a3.onrender.com';
+// 后端基地址
+const API_BASE = ''; // 同域同站，fetch('/api/...') 即可
 
 // 统一请求封装（携带跨站 Cookie）
 async function api(path, opts = {}) {

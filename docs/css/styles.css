@@ -307,3 +307,20 @@ button {
   font-weight: 700;  /* 可保留粗细，也可改成 600 */
   letter-spacing: 0.02em; /* 视情况微调字距 */
 }
+
+/* === keypad 禁用态（播放中） === */
+.keypad.disabled .keypad-button,
+.keypad-button.disabled {
+  pointer-events: none;
+  filter: grayscale(100%);
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* 播放按钮禁用态（可选） */
+#playTrial.disabled, #playTrial:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
