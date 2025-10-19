@@ -1,17 +1,22 @@
 // docs/admin.js
 
-// 后端基地址
-const API_BASE = ''; // 同域同站，fetch('/api/...') 即可
+// 后端基地址。你是同域部署，保持空字符串就好；将来改成别的域名也没问题
+const API_BASE = (typeof API_BASE === 'string') ? API_BASE : '';
 
-// 统一请求封装（携带跨站 Cookie）
+// 统一请求封装（自动拼出 /api/...，并带上 Cookie）
 async function api(path, opts = {}) {
-  const res = await fetch(API_BASE + path, Object.assign({
-    headers: { "Content-Type": "application/json" },
-    credentials: "include"
+  // 无论传进来是 "api/auth/login" 还是 "/api/auth/login"，都拼成 "/api/auth/login"
+  const base = (window.API_BASE ?? API_BASE ?? '');
+  const u = base.replace(/\/$/, '') + '/' + String(path).replace(/^\//, '');
+
+  const res = await fetch(u, Object.assign({
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include'
   }, opts));
+
   if (!res.ok) {
     let msg = `${res.status} ${res.statusText}`;
-    try { msg = await res.text(); } catch {}
+    try { msg = await res.text(); } catch(e) {}
     throw new Error(msg);
   }
   return res.json();
